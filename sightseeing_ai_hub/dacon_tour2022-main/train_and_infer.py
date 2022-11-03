@@ -1,4 +1,5 @@
 import random
+from tqdm import tqdm
 import pandas as pd
 import numpy as np
 import os
@@ -174,7 +175,9 @@ class CustomModel(nn.Module):
         tgt_len, bsz, embed_dim = query.shape  , query, key ,value 를 생성하는 부분으로 보이는데요
         여기서 줄어든 dimension size(batch_size,feature) 로 인하여 error가 발생합니다. transformers version은 4.24.0 입니다.
         
-        query key value 는 초기에 모두 같은 값으로 세팅이 된다. 
+        query key value 는 초기에 모두 같은 값으로 세팅이 된다.
+        
+        version up torch 1.10.1--> 1.13.0 에서는 이런 것을 처리하도록 메서드 변경되었는 지 실행이된다 
         """
         output_1 = self.classifier_1(txt_feature_1)
         output_2 = self.classifier_2(txt_feature_2)
@@ -198,12 +201,26 @@ def train(model, optimizer, train_loader, val_loader, scheduler, cat1_tree_dict,
     for epoch in range(1, max_epoch + 1):
         model.train()
         train_loss = []
-        for batch_i, (txt, label_1, label_2, label_3) in enumerate(train_loader):
+        for batch_i, (txt, label_1, label_2, label_3) in tqdm(enumerate(train_loader)):
             with torch.cuda.amp.autocast():
                 label_1, label_2, label_3 = label_1.type(torch.LongTensor), label_2.type(
                     torch.LongTensor), label_3.type(torch.LongTensor)
                 label_1, label_2, label_3 = label_1.to(DEVICE), label_2.to(DEVICE), label_3.to(DEVICE)
-
+                """
+                코드 공유 감사드립니다.
+                torch==1.10.1 로 실험하였는데 error가 발생했고
+                torch==1.13.0 update 이후 정상 실행되네요 cls token 만 가져오는 부분에서 차원이 줄어들어 torch.nn.TransforemrEncoderLayer에서 이를 처리 하는 부분부분이 변경된 듯합니다.
+                저와 같은 분이 있을까 싶어 공유 남깁니다.
+                    
+                    2.1 3.3  4.9
+                    loss1 l 
+                    1.7 3.0 4.47 줄긴 하는데 흠 내가 너무 빠르게 줄기를 원한건가 어떻게 흠
+                    1.5 2.7 4.0 계속 줄긴한다 일단 빠르게 수렴하는 값을 찾고 값을 낮춰 나가는건가
+                    1.5 2.9 4.5
+                    1.6 2.5 3.5 줄긴하는데 epoch 이  172/850 
+                    1.47 2.3 3.5 200/850 
+                    1.7 2.3 3.5
+                """
 
                 output_1, output_2, output_3 = model(txt)
                 ### loss for cat1 cat2 cat3 train data
@@ -232,6 +249,7 @@ def train(model, optimizer, train_loader, val_loader, scheduler, cat1_tree_dict,
 
         ### get validation score
         val_loss, val_score = validation(model, val_loader, cat1_tree_dict, cat2_tree_dict)
+        # 공유 받는 코드 버전과 환경을 가장 우선적으로 체그하기
 
         print(f'Epoch [{epoch}], Train Loss : [{tr_loss:.5f}] Val Loss : [{val_loss:.5f}] Val Score : [{val_score:.5f}]')
 
@@ -322,7 +340,7 @@ def inference(model, test_loader, cat1_tree_dict, cat2_tree_dict):
 
 def main():
     batch_size = 16
-    num_workers = 4
+    num_workers = 0
     max_length = 256
     max_epoch = 31
     learning_rate = 0.00003
