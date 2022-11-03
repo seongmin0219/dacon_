@@ -219,7 +219,13 @@ def train(model, optimizer, train_loader, val_loader, scheduler, cat1_tree_dict,
                     1.5 2.9 4.5
                     1.6 2.5 3.5 줄긴하는데 epoch 이  172/850 
                     1.47 2.3 3.5 200/850 
-                    1.7 2.3 3.5
+                    1.7 2.3 3.5 
+                    1.5 2.1 2.1 갑자기 많이하락한것도 잇녜 288/850 이제는 왜이렇게하고 왜이렇게됐는지
+                    1.3 1.8 1.59  372/850
+                    1.1 1.3 1.5 537/850
+                    1epoch val score 가 0.72네 그래 시작부터 0.7 이상이 나와야한다 역시 1epoch에 어느정도 가늠할수잇는듯
+                    # 1.19 0.69 (newbaseline) 이거는 0.9loss에 0.723 val acc 
+                    0.8 0.9 1.8 2epoch 136/850 
                 """
 
                 output_1, output_2, output_3 = model(txt)
